@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify
 
-from repository.fantasy_team_repository import create_team
-from repository.player_season_repository import get_by_player_id
+from repository.fantasy_team_repository import create_team, update_team, delete_team
+from repository.player_season_repository import get_by_player_id, get_player_season
 
 teams_blueprint = Blueprint("teams", __name__)
 
-@teams_blueprint.route("", methods=["POST"])
-def create_team():
+@teams_blueprint.route("/", methods=["POST"])
+def create_fantasy_team():
     data = request.get_json()
     team_name = data.get("team_name")
     player_ids = data.get("player_ids")
@@ -28,39 +28,42 @@ def create_team():
     team_id = create_team(team_name, player_ids)
     return jsonify({"team_id": team_id, "team_name": team_name}), 201
 
-# @teams_blueprint.route("/api/teams/<int:team_id>", methods=["PUT"])
-# def update_team_endpoint(team_id):
-#     data = request.get_json()
-#     player_ids = data.get("player_ids")
-#
-#     if len(player_ids) < 5:
-#         return jsonify({"error": "At least 5 players are required"}), 400
-#
-#     positions = set()
-#     for player_id in player_ids:
-#         player = get_player_by_id(player_id)
-#         if player:
-#             positions.add(player.position)
-#         else:
-#             return jsonify({"error": f"Player with ID {player_id} not found"}), 404
-#
-#     if len(positions) < 5:
-#         return jsonify({"error": "A player is required for each position"}), 400
-#
-#     if has_player_in_multiple_teams(player_ids):
-#         return jsonify({"error": "A player cannot be in more than one team"}), 400
-#
-#     update_team(team_id, player_ids)
-#     return jsonify({"message": "Team updated successfully"}), 200
-#
-# @teams_blueprint.route("/api/teams/<int:team_id>", methods=["DELETE"])
-# def delete_team_endpoint(team_id):
-#     if not team_exists(team_id):
-#         return jsonify({"error": "Team not found"}), 404
-#
-#     delete_team(team_id)
-#     return jsonify({"message": "Team deleted successfully"}), 200
-#
+@teams_blueprint.route("/<int:team_id>", methods=["PUT"])
+def update_team_endpoint(team_id):
+    data = request.get_json()
+    player_ids = data.get("player_ids")
+
+    if len(player_ids) < 5:
+        return jsonify({"error": "At least 5 players are required"}), 400
+
+    positions = set()
+    for player_id in player_ids:
+        player = get_by_player_id(player_id)
+        if player:
+            if isinstance(player, list):
+                positions.add(player[0]["position"])
+            else:
+                positions.add(player["position"])
+        else:
+            return jsonify({"error": f"Player with ID {player_id} not found"}), 404
+
+    if len(positions) < 5:
+        return jsonify({"error": "A player is required for each position"}), 400
+
+    updated_team_id = update_team(team_id, player_ids)
+    return jsonify({"team_id": updated_team_id}), 200
+
+
+@teams_blueprint.route("/<int:team_id>", methods=["DELETE"])
+def delete_fantasy_team(team_id):
+    success = delete_team(team_id)
+
+    if success:
+        return jsonify({"message": f"Team with id {team_id} has been deleted successfully"}), 200
+    else:
+        return jsonify({"error": f"Team with id {team_id} not found"}), 404
+
+
 # @teams_blueprint.route("/api/teams/<int:team_id>", methods=["GET"])
 # def get_team_details(team_id):
 #     team = get_team_by_id(team_id)
