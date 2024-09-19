@@ -6,7 +6,7 @@ def create_player_season(player_season: PlayerSeasonStatus):
     with get_db_connection() as connection, connection.cursor() as cursor:
         cursor.execute('''
             INSERT INTO player_season (
-                player_id, team, position, seasons, points, games, two_percent, three_percent, atr, ppg_ratio
+                player_id, team, position, seasons, points, games,assists,turnovers, two_percent, three_percent, atr, ppg_ratio
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         ''', (
@@ -49,6 +49,19 @@ def get_player_season():
         ''')
         result = cursor.fetchall()
         return result
+
+def get_players_by_position_and_season(position, season):
+    if not season:
+        query = "SELECT * FROM player_season WHERE position = %s"
+        params = (position,)
+    else:
+        query = "SELECT * FROM player_season WHERE position = %s AND seasons = %s"
+        params = (position, season)
+    with get_db_connection() as connection, connection.cursor() as cursor:
+        cursor.execute(query, params)
+        result = cursor.fetchall()
+        return result
+
 
 def get_by_season(season: int):
     with get_db_connection() as connection, connection.cursor() as cursor:

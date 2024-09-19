@@ -18,8 +18,8 @@ def create_player_season_table():
             games INT NOT NULL,
             assists INT NOT NULL,
             turnovers INT NOT NULL,
-            two_percent FLOAT NOT NULL,
-            three_percent FLOAT NOT NULL,
+            two_percent FLOAT,
+            three_percent FLOAT,
             atr FLOAT NOT NULL,  
             ppg_ratio FLOAT NOT NULL,  
             FOREIGN KEY (player_id) REFERENCES player(id) ON DELETE CASCADE

@@ -20,17 +20,19 @@ def load_nba_data_from_api():
             player_season = extract_season_player_from_nba_data(player_season_data, player_id)
             player_season.atr = get_atr(player_season.assists, player_season.turnovers)
             points_per_game = get_points_per_game(player_season.points, player_season.games)
-            average_all = get_average_per_position(player_season_data, player_season.position)
+            average_all = get_average_per_position(nba_data_from_api, player_season.position)
             player_season.ppg_ratio = points_per_game / average_all
             create_player_season(player_season)
 
 def get_average_per_position(nba_data, position):
+    print(f"Type of nba_data: {type(nba_data)}")
+    print(f"Sample data for filtering: {nba_data[:2]}")
     filter_list = list(filter(lambda player: player['position'] == position, nba_data))
     sum_games = sum(list(map(lambda player: player['games'], filter_list)))
     sum_points = sum(list(map(lambda player: player['points'], filter_list)))
     return sum_points / sum_games
 
-drop_all_tables()
-create_tables()
-load_nba_data_from_api()
-print(get_player_season())
+# drop_all_tables()
+# create_tables()
+# load_nba_data_from_api()
+# print(get_player_season())
