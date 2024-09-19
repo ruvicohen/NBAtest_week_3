@@ -1,3 +1,5 @@
+from enum import unique
+
 from models.player_season_status import PlayerSeasonStatus
 from repository.database import get_db_connection
 
@@ -80,3 +82,38 @@ def get_by_player_id(player_id: int):
         ''', (player_id,))
         result = cursor.fetchall()
         return result
+
+def get_players_by_ids(player_ids):
+    with get_db_connection() as connection, connection.cursor() as cursor:
+        cursor.executemany('INSERT INTO player_fantasy_team (player_id) VALUES (%s)',
+                           [player_id for player_id in player_ids])
+
+        connection.commit()
+        players = cursor.fetchall()
+    return players
+
+
+
+
+def get_players_by_team_id(team_id):
+    with get_db_connection() as connection, connection.cursor() as cursor:
+        cursor.execute('''
+            SELECT 
+                p.id,
+                p.name AS playerName,
+                ps.team,
+                ps.position,
+                ps.points,
+                ps.games,
+                ps.two_percent AS twoPercent,
+                ps.three_percent AS threePercent,
+                ps.atr AS ATR,
+                ps.ppg_ratio AS PPG_Ratio
+            FROM player p
+            JOIN player_fantasy_team pft ON p.id = pft.player_id
+            JOIN player_season ps ON p.id = ps.player_id
+            WHERE pft.fantasy_team_id = %s
+        ''', (team_id,))
+
+        players = cursor.fetchall()
+        return players

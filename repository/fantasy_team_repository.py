@@ -36,4 +36,10 @@ def delete_team(team_id):
 
     return deleted_rows > 0
 
+def get_team_name_by_id(team_id):
+    with get_db_connection() as connection, connection.cursor() as cursor:
+        cursor.execute('SELECT name FROM fantasy_team WHERE id = %s', (team_id,))
+        team = cursor.fetchone()
+        return team['name'] if team else None
+
 
