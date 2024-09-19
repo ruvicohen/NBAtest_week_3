@@ -81,5 +81,4 @@ def drop_all_tables():
     cursor.close()
     connection.close()
 
-if __name__ == "__main__":
-    create_tables()
+

@@ -2,7 +2,7 @@ from dataclasses import asdict
 
 from flask import Blueprint, jsonify, request
 
-from models.ResponseDto import ResponseDto
+from dto.ResponseDto import ResponseDto
 from repository.player_season_repository import get_players_by_position_and_season, get_player_season
 
 player_blueprint = Blueprint("player", __name__)
@@ -26,9 +26,4 @@ def get_players():
     response = ResponseDto(body={"players": players})
     return jsonify(asdict(response)), 200
 
-@player_blueprint.route("/players", methods=["GET"])
-def get_players_all():
 
-    players = get_player_season()
-    response = ResponseDto(body={"players": players})
-    return jsonify(asdict(response)), 200

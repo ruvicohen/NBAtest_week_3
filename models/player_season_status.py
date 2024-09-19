@@ -3,7 +3,7 @@ from typing import List
 
 @dataclass
 class PlayerSeasonStatus:
-    player_id: str
+    player_id: int
     team: str
     position: str
     seasons: int

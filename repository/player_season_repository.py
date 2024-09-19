@@ -1,4 +1,3 @@
-from enum import unique
 
 from models.player_season_status import PlayerSeasonStatus
 from repository.database import get_db_connection
@@ -29,20 +28,6 @@ def create_player_season(player_season: PlayerSeasonStatus):
         new_id = cursor.fetchone()['id']
         return new_id
 
-def extract_season_player_from_nba_data(nba_data, player_id):
-    return PlayerSeasonStatus(
-        player_id=player_id,
-        team=nba_data["team"],
-        position=nba_data["position"],
-        seasons=nba_data["season"],
-        points=nba_data["points"],
-        games=nba_data["games"],
-        assists=nba_data["assists"],
-        turnovers=nba_data["turnovers"],
-        two_percent=nba_data["twoPercent"],
-        three_percent=nba_data["threePercent"]
-
-    )
 
 def get_player_season():
     with get_db_connection() as connection, connection.cursor() as cursor:
@@ -54,11 +39,29 @@ def get_player_season():
 
 def get_players_by_position_and_season(position, season):
     if not season:
-        query = "SELECT * FROM player_season WHERE position = %s"
+        query = """
+                SELECT 
+                p.name AS player_name,          
+                ps.player_id,
+                ps.position,
+                SUM(ps.points) AS total_points,
+                SUM(ps.assists) AS total_assists,
+                SUM(ps.turnovers) AS total_turnovers,
+                SUM(ps.games) AS total_games,
+                AVG(ps.two_percent) AS avg_two_percent,
+                AVG(ps.three_percent) AS avg_three_percent,
+                SUM(ps.points) / SUM(ps.games) AS points_per_game  
+                FROM player_season ps
+                JOIN player p ON ps.player_id = p.id  
+                WHERE ps.position = %s                 
+                GROUP BY ps.player_id, ps.position, p.name 
+
+        """
         params = (position,)
     else:
         query = "SELECT * FROM player_season WHERE position = %s AND seasons = %s"
         params = (position, season)
+
     with get_db_connection() as connection, connection.cursor() as cursor:
         cursor.execute(query, params)
         result = cursor.fetchall()
@@ -98,21 +101,22 @@ def get_players_by_ids(player_ids):
 def get_players_by_team_id(team_id):
     with get_db_connection() as connection, connection.cursor() as cursor:
         cursor.execute('''
-            SELECT 
-                p.id,
-                p.name AS playerName,
-                ps.team,
+                SELECT 
+                p.name AS player_name,          
+                ps.player_id,
                 ps.position,
-                ps.points,
-                ps.games,
-                ps.two_percent AS twoPercent,
-                ps.three_percent AS threePercent,
-                ps.atr AS ATR,
-                ps.ppg_ratio AS PPG_Ratio
-            FROM player p
-            JOIN player_fantasy_team pft ON p.id = pft.player_id
-            JOIN player_season ps ON p.id = ps.player_id
-            WHERE pft.fantasy_team_id = %s
+                SUM(ps.points) AS total_points,
+                SUM(ps.assists) AS total_assists,
+                SUM(ps.turnovers) AS total_turnovers,
+                SUM(ps.games) AS total_games,
+                AVG(ps.two_percent) AS avg_two_percent,
+                AVG(ps.three_percent) AS avg_three_percent,
+                SUM(ps.points) / SUM(ps.games) AS points_per_game
+                FROM player p
+                JOIN player_fantasy_team pft ON p.id = pft.player_id
+                JOIN player_season ps ON p.id = ps.player_id
+                WHERE pft.fantasy_team_id = %s
+                GROUP BY ps.player_id, ps.position, p.name 
         ''', (team_id,))
 
         players = cursor.fetchall()
