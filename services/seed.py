@@ -7,7 +7,5 @@ def seed():
     create_tables()
     player_season = get_player_season()
     if not player_season:
-        load_nba_data_from_api()
-
-
-
+        list_season = ["2022", "2023", "2024"]
+        load_nba_data_from_api(list_season)

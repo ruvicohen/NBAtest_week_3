@@ -2,8 +2,7 @@ from flask import Blueprint, request, jsonify
 from dto.ResponseDto import ResponseDto
 from repository.fantasy_team_repository import create_team, update_team, delete_team, get_team_name_by_id
 from repository.player_season_repository import get_by_player_id, get_players_by_team_id
-from utils.statistics_repository import calculate_team_statistics
-
+from services.team_service import get_player_positions, get_team_stats, validate_teams
 
 teams_blueprint = Blueprint("teams", __name__)
 
@@ -16,13 +15,7 @@ def create_fantasy_team():
     if len(player_ids) < 5:
         return jsonify(ResponseDto(error="At least 5 players are required")), 400
 
-    positions = set()
-    for player_id in player_ids:
-        player = get_by_player_id(player_id)
-        if player:
-            positions.add(player[0]["position"])
-        else:
-            return jsonify(ResponseDto(error=f"Player with ID {player_id} not found")), 404
+    positions = get_player_positions(player_ids)
 
     if len(positions) < 5:
         return jsonify(ResponseDto(error="A player is required for each position")), 400
@@ -31,23 +24,14 @@ def create_fantasy_team():
     return jsonify(ResponseDto(message="Team created successfully", body={"team_id": team_id, "team_name": team_name})), 201
 
 @teams_blueprint.route("/<int:team_id>", methods=["PUT"])
-def update_team_endpoint(team_id):
+def update_team_endpoints(team_id):
     data = request.get_json()
     player_ids = data.get("player_ids")
 
     if len(player_ids) < 5:
         return jsonify(ResponseDto(error="At least 5 players are required")), 400
 
-    positions = set()
-    for player_id in player_ids:
-        player = get_by_player_id(player_id)
-        if player:
-            if isinstance(player, list):
-                positions.add(player[0]["position"])
-            else:
-                positions.add(player["position"])
-        else:
-            return jsonify(ResponseDto(error=f"Player with ID {player_id} not found")), 404
+    positions = get_player_positions(player_ids)
 
     if len(positions) < 5:
         return jsonify(ResponseDto(error="A player is required for each position")), 400
@@ -74,32 +58,16 @@ def get_team_details(team_id):
     return jsonify(ResponseDto(message="Team found", body={"team_name": team, "players": players})), 200
 
 @teams_blueprint.route("/compare", methods=["GET"])
-def compare_teams_endpoint():
+def compare_teams():
     query_params = request.args
     team_ids = [int(query_params[key]) for key in query_params if key.startswith('team')]
 
     if len(team_ids) < 2:
         return jsonify(ResponseDto(error="At least 2 teams are required for comparison")), 400
 
-    teams = []
-    for team_id in team_ids:
-        team = get_team_name_by_id(int(team_id))
-        if not team:
-            return jsonify(ResponseDto(error=f"Team with ID {team_id} not found")), 404
-        teams.append(team)
+    if not validate_teams(team_ids):
+        return jsonify(ResponseDto(error=f"The provided team not found")), 404
 
-    team_stats = []
-    for team in team_ids:
-        players = get_players_by_team_id(team)
-        average_stats = calculate_team_statistics(players)
-        team_stats.append({
-            "team": team,
-            "points": average_stats["points"],
-            "twoPercent": average_stats["two_percent"],
-            "threePercent": average_stats["three_percent"],
-            "ATR": average_stats["atr"],
-            "PPG Ratio": average_stats["ppg_ratio"]
-        })
+    team_stats = get_team_stats(team_ids)
 
-    sorted_teams = sorted(team_stats, key=lambda x: x["PPG Ratio"], reverse=True)
-    return jsonify(ResponseDto(message="Teams compared successfully", body=sorted_teams)), 200
+    return jsonify(ResponseDto(message="Teams compared successfully", body=team_stats)), 200

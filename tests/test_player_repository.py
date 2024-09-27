@@ -1,7 +1,8 @@
 import pytest
 from repository.database import create_tables, drop_all_tables
 from models.player import Player
-from repository.player_repository import create_player, extract_player_from_nba_data, get_player_id_by_name
+from repository.player_repository import create_player, get_player_id_by_name
+from services.player_service import extract_player_from_nba_data
 
 
 # Fixture to setup and teardown the database
@@ -9,10 +10,8 @@ from repository.player_repository import create_player, extract_player_from_nba_
 def setup_database():
     # Setup: Create the necessary tables
     create_tables()
-
     # Yield control back to the tests
     yield
-
     # Teardown: Drop all tables after the tests
     drop_all_tables()
 

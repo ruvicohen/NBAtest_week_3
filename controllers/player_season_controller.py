@@ -25,5 +25,3 @@ def get_players():
     players = get_players_by_position_and_season(position, season)
     response = ResponseDto(body={"players": players})
     return jsonify(asdict(response)), 200
-
-

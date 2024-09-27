@@ -1,27 +1,42 @@
+from toolz import pipe, compose, juxt
+from toolz.curried import partial
 from api.nba_api import get_data_nba_from_api
+from models.player import Player
+from repository.database import drop_all_tables, create_tables
 from repository.player_repository import  create_player, get_player_id_by_name
-from repository.player_season_repository import create_player_season
+from repository.player_season_repository import create_player_season, get_player_season
 from services.player_service import extract_player_from_nba_data, extract_season_player_from_nba_data
-from utils.logics import get_atr, get_points_per_game, get_average_ppg_position
+from utils.logics import get_atr, get_points_per_game, get_average_ppg_per_position, get_ppg_ratio
 from utils.urls import get_nba_url
 
+def extract_nba_data_from_api(season):
+    return pipe(
+        season,
+        get_nba_url,
+        get_data_nba_from_api
+    )
 
-def load_nba_data_from_api():
-    list_season = ["2022", "2023", "2024"]
-    for season in list_season:
-        nba_url = get_nba_url(season)
-        nba_data_from_api = get_data_nba_from_api(nba_url)
-        for player_season_data in nba_data_from_api:
-            player_id = get_player_id_by_name(player_season_data["playerName"])
-            if not player_id:
-                player = extract_player_from_nba_data(player_season_data)
-                player_id = create_player(player)
-            player_season = extract_season_player_from_nba_data(player_season_data, player_id)
-            player_season.atr = get_atr(player_season.assists, player_season.turnovers)
-            points_per_game = get_points_per_game(player_season.points, player_season.games)
-            average_all = get_average_ppg_position(nba_data_from_api, player_season.position)
-            player_season.ppg_ratio = points_per_game / average_all
-            create_player_season(player_season)
+def get_player_id(name: str):
+    player_id =  get_player_id_by_name(name)
+    if not player_id:
+        player_id = create_player(Player(name=name))
+    return  player_id
 
+def process_player_data(nba_data):
+    return pipe(
+        nba_data,
+        partial(map, lambda data: { **data, "player_id": get_player_id(data["playerName"]) }),
+        partial(map, lambda data: { **data, "atr": get_atr(data["assists"], data["turnovers"]) }),
+        partial(map, lambda data:  { **data, "ppg_ratio": get_ppg_ratio(data, nba_data) }),
+        list
+    )
 
-
+def load_nba_data_from_api(list_season):
+    return pipe(
+        list_season,
+        partial(map, extract_nba_data_from_api),
+        partial(map, process_player_data),
+        partial(map, partial(map, create_player_season)),
+        partial(map, list),
+        list
+    )

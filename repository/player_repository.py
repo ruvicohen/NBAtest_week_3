@@ -1,7 +1,6 @@
 from models.player import Player
 from repository.database import get_db_connection
 
-
 def create_player(player: Player) -> int:
     with get_db_connection() as connection, connection.cursor() as cursor:
         cursor.execute(
@@ -31,5 +30,3 @@ def delete_player(player_id):
         connection.commit()
 
     return deleted_rows > 0
-
-
